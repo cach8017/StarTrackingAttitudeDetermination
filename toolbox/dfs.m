@@ -1,0 +1,1 @@
+delete(get(0,'children'))
