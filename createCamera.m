@@ -15,6 +15,6 @@ function CAM = createCamera(NB)
     CAM.u0 = CAM.umax/2;  CAM.v0 = CAM.vmax/2;
 
     % Measurement noise
-    CAM.sigma_u = 1;      CAM.sigma_v = 1;
+    CAM.sigma_u = 2;      CAM.sigma_v = 2;
 
 end

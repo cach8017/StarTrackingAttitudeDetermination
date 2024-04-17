@@ -1,17 +1,19 @@
-function pictureData = takePicture(STARS,CAM,NB)
+function pictureData = takePicture(STARS,CAM,NB,plotflag)
 
-    % Clear skybox
-    figure(1);
-    if length(get(gca,'Children')) > 1
-        delete(gca().Children(1));
+    if plotflag
+        % Clear skybox
+        figure(1);
+        if length(get(gca,'Children')) > 1
+            delete(gca().Children(1));
+        end
+    
+        % Set up figure
+        f2 = figure(2); clf; hold on; 
+        f2.Position = [1133 81 560 420]; f2.Name = "Image";
+        axis equal; axis([0 1024 0 1024]); % Image bounds
+        labels(gca,{'$u$ [px]','$v$ [px]'},'');
+        fixfig(figure(2)); grid off;
     end
-
-    % Set up figure
-    f2 = figure(2); clf; hold on; 
-    f2.Position = [1133 81 560 420]; f2.Name = "Image";
-    axis equal; axis([0 1024 0 1024]); % Image bounds
-    labels(gca,{'$u$ [px]','$v$ [px]'},'');
-    fixfig(figure(2)); grid off;
 
     % Create container for imaged stars [index u v]
     pictureData = [];
@@ -29,13 +31,15 @@ function pictureData = takePicture(STARS,CAM,NB)
             v_i = CAM.f * (starPos'*khat) / (starPos'*ihat) + CAM.v0 + CAM.sigma_v*randn(1);
     
             if inFOV([u_i;v_i],CAM)
-                % Plot projected point on image
-                figure(2);
-                plot(u_i,v_i,'.','MarkerSize',30,'Color',[1 1 1]); hold on;
-                darkMode(f2);
-                % Plot imaged star on skybox
-                figure(1);
-                plot3(starPos(1),starPos(2),starPos(3),'.','MarkerSize',30,'Color',[1 0 0]);
+                if plotflag
+                    % Plot projected point on image
+                    figure(2);
+                    plot(u_i,v_i,'.','MarkerSize',30,'Color',[1 1 1]); hold on;
+                    darkMode(f2);
+                    % Plot imaged star on skybox
+                    figure(1);
+                    plot3(starPos(1),starPos(2),starPos(3),'.','MarkerSize',30,'Color',[1 0 0]);
+                end
                 
                 % Save measurements from image
                 pictureData = [pictureData; i, u_i, v_i];

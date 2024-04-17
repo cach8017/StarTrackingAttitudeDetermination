@@ -16,9 +16,9 @@ NB = BN';
 CAM = createCamera(NB);
 
 %% Take Picture
-
-pictureData = takePicture(STARS,CAM,NB);
-
+for i=1:5
+    pictureData = takePicture(STARS,CAM,NB,true)
+end
 %% Determine Attitude using Gradient Descent
 % Set intial guess using one of the stars in frame
 
