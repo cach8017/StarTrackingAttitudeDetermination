@@ -6,7 +6,7 @@ function CAM = createCamera(NB)
     CAM.pointVector_N = NB * CAM.pointVector_B;
     % Top of image aligns with top of camera.
     CAM.upVector_B = [0 0 1]';
-    CAM.upVector_N = NB * CAM.pointVector_N;
+    CAM.upVector_N = NB * CAM.upVector_B;
     
     % Camera parameters
     CAM.f = 2.000e3;
@@ -15,6 +15,6 @@ function CAM = createCamera(NB)
     CAM.u0 = CAM.umax/2;  CAM.v0 = CAM.vmax/2;
 
     % Measurement noise
-    CAM.sigma_u = 2;      CAM.sigma_v = 2;
+    CAM.sigma_u = 0;      CAM.sigma_v = 0;
 
 end
