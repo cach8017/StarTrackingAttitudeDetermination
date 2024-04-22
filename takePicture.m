@@ -17,7 +17,9 @@ function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
 
     % Create container for imaged stars [index u v]
     pictureData = [];
-    
+    % Create container for imaged stars [index xc yc zc]
+    starEstData = [];
+
     v_u = CAM.sigma_u*randn(1);
     v_v = CAM.sigma_v*randn(1);
 
@@ -44,11 +46,20 @@ function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
                     darkMode(f2);
                     % Plot imaged star on skybox
                     figure(1);
-                    plot3(starPos(1),starPos(2),starPos(3),'.','MarkerSize',30,'Color',[1 0 0]);
+
+                    % Recover inertial coordinate for plotting purposes
+                    yc = -(u_i-CAM.u0)/CAM.f;
+                    zc =  (v_i-CAM.v0)/CAM.f;
+                    xc = sqrt(1-yc^2-zc^2);
+                    inertial = NB * [xc;yc;zc];
+                    plot3(inertial(1),inertial(2),inertial(3),'.','MarkerSize',30,'Color',[1 0 0]);
+
                 end
                 
                 % Save measurements from image
                 pictureData = [pictureData; i, u_i, v_i];
+                starEstData = [starEstData; i, xc, yc, zc];
+
             end
 
         end
@@ -58,13 +69,6 @@ function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
     if plotflag
         plotBoundingBox(CAM,NB); 
     end
-
-    starEstData = zeros(size(pictureData,1),4);    % each row: [starID, x_b, y_b, z_b]
-
-    starEstData(:,1) = pictureData(:,1);
-    starEstData(:,3) = -(pictureData(:,2)-CAM.u0)/CAM.f; % flip du to align with y-axis
-    starEstData(:,4) =  (pictureData(:,3)-CAM.v0)/CAM.f;
-    starEstData(:,2) = sqrt(1 - starEstData(:,3).^2 - starEstData(:,4).^2);
 
     % Orient skybox to show imaged region
     figure(1);
