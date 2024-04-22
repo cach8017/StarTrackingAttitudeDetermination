@@ -55,12 +55,11 @@ function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
                     % Recover inertial coordinate for plotting purposes
                     % v_b (measurement frame) 
 
-                    % Incorporate Distortion:
+                    % Incorporate Distortion: Distorted 2D pixels 
+                    % Eq (5) in http://mesh.brown.edu/3DP-2018/calibration.html
                     r_squared = (u_i-CAM.u0)^2 + (v_i - CAM.v0)^2; 
-                    k1 = 7e-13; % radial distortion coefficients of the lens
-                    k2 = 4e-13; % radial distortion coefficients of the lens
-                    distortion_factor = 1/(1 + k1 * r_squared + k2 * r_squared^2);
-                    % Distorted 2D pixels Eq (5) in http://mesh.brown.edu/3DP-2018/calibration.html
+                    distortion_factor = 1/(1 + CAM.k1 * r_squared + CAM.k2 * r_squared^2);
+           
                     %u_d = u_i * distortion_factor;
                     %v_d = v_i * distortion_factor;
                     
@@ -109,8 +108,12 @@ function plotBoundingBox(CAM,NB)
     us = [CAM.umin*ones(1,N),linspace(CAM.umin,CAM.umax,N),CAM.umax*ones(1,N),flip(linspace(CAM.umin,CAM.umax,N))];
     vs = [linspace(CAM.vmin,CAM.vmax,N),CAM.vmax*ones(1,N),flip(linspace(CAM.vmin,CAM.vmax,N)),CAM.vmin*ones(1,N)];
 
-    ys = -(us-CAM.u0)/CAM.f;
-    zs =  (vs-CAM.v0)/CAM.f;
+    % Incorporate Distortion:
+    r_squared = (us - CAM.u0).^2 + (vs - CAM.v0).^2;  
+    distortion_factor = 1 ./ (1 + CAM.k1 * r_squared + CAM.k2 * r_squared.^2);
+
+    ys = -distortion_factor*(us-CAM.u0)/CAM.f;
+    zs =  distortion_factor*(vs-CAM.v0)/CAM.f;
     xs = sqrt(1 - ys.^2 - zs.^2);
     
     inertialPos = NB * [xs; ys; zs];
