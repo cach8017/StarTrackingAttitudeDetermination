@@ -20,7 +20,7 @@ function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
     % Create container for imaged stars [index xc yc zc]
     starEstData = [];
 
-    v_u = CAM.sigma_u*randn(1);
+    v_u = CAM.sigma_u*randn(1); % MOVE INSIDE THE FOR LOOP - TO HAVE NOISE FOR EACH STAR
     v_v = CAM.sigma_v*randn(1);
 
     for i=1:STARS.Nstars
@@ -37,6 +37,11 @@ function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
     
             u_i = round(u_i);
             v_i = round(v_i);
+            % du = u_i - CAM.u0; 
+            % dv = v_i - CAM.v0; 
+            % k = 0.025;
+            % u_i = u_i - k*du; 
+            % v_i = v_i - k*dv; 
 
             if inFOV([u_i;v_i],CAM)
                 if plotflag
@@ -48,13 +53,29 @@ function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
                     figure(1);
 
                     % Recover inertial coordinate for plotting purposes
-                    yc = -(u_i-CAM.u0)/CAM.f;
-                    zc =  (v_i-CAM.v0)/CAM.f;
-                    xc = sqrt(1-yc^2-zc^2);
+                    % v_b (measurement frame) 
+
+                    % Incorporate Distortion:
+                    r_squared = (u_i-CAM.u0)^2 + (v_i - CAM.v0)^2; 
+                    k1 = 7e-13; % radial distortion coefficients of the lens
+                    k2 = 4e-13; % radial distortion coefficients of the lens
+                    distortion_factor = 1/(1 + k1 * r_squared + k2 * r_squared^2);
+                    % Distorted 2D pixels Eq (5) in http://mesh.brown.edu/3DP-2018/calibration.html
+                    %u_d = u_i * distortion_factor;
+                    %v_d = v_i * distortion_factor;
+                    
+                    % 3D Coordinates in Body Frame
+                    yc = -distortion_factor*(u_i-CAM.u0)/CAM.f;
+                    zc =  distortion_factor*(v_i-CAM.v0)/CAM.f;
+                    xc = sqrt(1-yc^2-zc^2); % normalize range by 1 
                     inertial = NB * [xc;yc;zc];
                     plot3(inertial(1),inertial(2),inertial(3),'.','MarkerSize',30,'Color',[1 0 0]);
 
+
                 end
+
+
+
                 
                 % Save measurements from image
                 pictureData = [pictureData; i, u_i, v_i];
