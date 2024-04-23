@@ -17,6 +17,6 @@ function CAM = createCamera(NB)
     CAM.k2 = 4e-13; % radial distortion coefficients of the lens
 
     % Measurement noise
-    CAM.sigma_u = 0;      CAM.sigma_v = 0;
+    CAM.sigma_u = 50;      CAM.sigma_v = 50;
 
 end
