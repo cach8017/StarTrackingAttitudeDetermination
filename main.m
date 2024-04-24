@@ -6,7 +6,7 @@ STARS.Nstars = length(x);
 STARS.x = x; STARS.y = y; STARS.z = z;
 
 %% Generate Starmap %%
-%showSkybox(STARS);
+showSkybox(STARS);
 
 %% Setup and Orient Camera %%
 initialAttitude = [60 -10 0]'; % deg (Euler321)
@@ -16,7 +16,20 @@ NB = BN';
 CAM = createCamera(NB);
 
 %% Take Picture
-[pictureData, starEstData] = takePicture(STARS,CAM,NB,false);
+f1ax = []; f2ax = []; % Initialize axes
+for i=1:1%0.25:1000
+
+    % Slew profile
+    initialAttitude = [30+5*i 40+10*cos(i/4) 5*i]'; % deg (Euler321)
+    BN = Euler3212C( deg2rad(initialAttitude) );
+    NB = BN';
+    
+    CAM = createCamera(NB);
+
+    [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,true,f1ax,f2ax);
+    pause(0.1);
+
+end
 % pictureData: [i u v]
 % starEstData: [i xc yc zc]
 

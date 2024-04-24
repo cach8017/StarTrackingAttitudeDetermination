@@ -4,7 +4,7 @@ function showSkybox(STARS)
     f1.Position = [1133 581 560 420]; % Set default figure position
     f1.Name = "Skybox";
     
-    plot3(STARS.x,STARS.y,STARS.z,'.','Color',[1 1 1],'MarkerSize',10);
+    plot3(STARS.x,STARS.y,STARS.z,'.','Color',[1 1 1],'MarkerSize',10,'DisplayName','skybox');
     axis vis3d;
     darkMode(f1);
     labels(gca,{'X','Y','Z'},'');

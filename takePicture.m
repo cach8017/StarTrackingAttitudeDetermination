@@ -1,24 +1,42 @@
-function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
+function [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,plotflag,f1ax,f2ax)
 
     if plotflag
         % Clear skybox
-        figure(1);
-        if length(get(gca,'Children')) > 1
-            delete(gca().Children(1));
+        if isempty(f1ax)
+            figure(1); f1ax=gca; 
+        end
+
+        chil = f1ax.Children;
+        for j=1:length(chil)
+            if chil(j).DisplayName == "meas"
+                delete(chil(j));
+            end
         end
     
-        % Set up figure
-        f2 = figure(2); clf; hold on; 
-        f2.Position = [1133 81 560 420]; f2.Name = "Image";
-        axis equal; axis([0 1024 0 1024]); % Image bounds
-        labels(gca,{'$u$ [px]','$v$ [px]'},'');
-        fixfig(figure(2)); grid off;
+        % Set up image figure
+        if isempty(f2ax)
+            f2 = figure(2); f2ax=gca; 
+            hold on; f2ax.Box='on';
+            f2.Position = [1133 81 560 420]; f2.Name = "Image";
+            axis equal; axis([0 1024 0 1024]); % Image bounds
+            labels(gca,{'$u$ [px]','$v$ [px]'},'');
+            fixfig(figure(2)); grid off;
+            darkMode(f2);
+        end
+
+        chil = f2ax.Children;
+        for i=1:length(chil)
+            delete(chil(i));
+        end
+
     end
 
     % Create container for imaged stars [index u v]
     pictureData = [];
     % Create container for imaged stars [index xc yc zc]
     starEstData = [];
+    % Create container for imaged stars [index xn yn zn]
+    starInertial = [];
 
     for i=1:STARS.Nstars
     
@@ -50,28 +68,12 @@ function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
                 yc = -distortion_factor*(u_i-CAM.u0)/CAM.f;
                 zc =  distortion_factor*(v_i-CAM.v0)/CAM.f;
                 xc = sqrt(1-yc^2-zc^2); % normalize range by 1 
+                inertial = NB * [xc;yc;zc];
 
-
-                if plotflag
-                    % Plot projected point on image
-                    figure(2);
-                    plot(u_i,v_i,'.','MarkerSize',20,'Color',[1 1 1]); hold on;
-                    darkMode(f2);
-                    
-                    % Plot imaged star on skybox
-                    figure(1);
-                    inertial = NB * [xc;yc;zc];
-                    p = plot3(inertial(1),inertial(2),inertial(3),'.','MarkerSize',20,'Color',[1 0 0]);
-                    uistack(p,'bottom');
-                    drawnow;
-                end
-
-
-
-                
                 % Save measurements from image
                 pictureData = [pictureData; i, u_i, v_i];
                 starEstData = [starEstData; i, xc, yc, zc];
+                starInertial = [starInertial; i, inertial(1), inertial(2), inertial(3)];
 
             end
 
@@ -80,21 +82,34 @@ function [pictureData, starEstData] = takePicture(STARS,CAM,NB,plotflag)
     end
     
     if plotflag
-        plotBoundingBox(CAM,NB); 
+        % Plot projected point on image
+        plot(f2ax,pictureData(:,2)',pictureData(:,3)','.','MarkerSize',20,'Color',[1 1 1]); hold on;
 
-         % Orient skybox to show imaged region
-        figure(1);
-        ax = gca; 
-        ax.CameraTarget = CAM.pointVector_N';
-        ax.CameraPosition = [0 0 0];
-        ax.CameraViewAngle = 40;
-        ax.CameraUpVector = CAM.upVector_N';
+        % Plot imaged star on skybox
+        plot3(f1ax,starInertial(:,2)',starInertial(:,3)',starInertial(:,4)','.','MarkerSize',20,'Color',[1 0 0],'DisplayName','meas');
+   
+
+        plotBoundingBox(CAM,NB,f1ax); 
+
+        % Orient skybox to show imaged region 
+        f1ax.CameraTarget = CAM.pointVector_N';
+        f1ax.CameraPosition = [0 0 0];
+        f1ax.CameraViewAngle = 40;
+        f1ax.CameraUpVector = CAM.upVector_N';
     end
 
 end
 
 
-function plotBoundingBox(CAM,NB)
+function plotBoundingBox(CAM,NB,f1ax)
+
+    % Clear previous bounding box
+    chil = f1ax.Children;
+    for i=1:length(chil)
+        if chil(i).DisplayName == "view" || chil(i).DisplayName == "box"
+            delete(chil(i));
+        end
+    end
 
     N = 20;
 
@@ -111,11 +126,10 @@ function plotBoundingBox(CAM,NB)
     
     inertialPos = NB * [xs; ys; zs];
 
-    figure(1);
-    plot3(inertialPos(1,:),inertialPos(2,:),inertialPos(3,:),'-','Color','y');
+    plot3(f1ax,inertialPos(1,:),inertialPos(2,:),inertialPos(3,:),'-','Color','y','DisplayName','box');
 
     for i=[1,N+1,2*N+1,3*N+1]
-        plot3([0 inertialPos(1,i)],[0 inertialPos(2,i)],[0 inertialPos(3,i)],'--','Color',[0.6 0.6 0.6]);
+        plot3(f1ax,[0 inertialPos(1,i)],[0 inertialPos(2,i)],[0 inertialPos(3,i)],'--','Color',[0.6 0.6 0.6],'DisplayName','view');
     end
 
 end
