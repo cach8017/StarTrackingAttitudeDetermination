@@ -15,15 +15,15 @@ NB = BN';
 
 CAM = createCamera(NB);
 
-%% Take Picture
+% Slew Rate
 f1ax = []; f2ax = []; % Initialize axes
 for i=1:1%0.25:1000
 
     % Slew profile
-    initialAttitude = [30+5*i 40+10*cos(i/4) 5*i]'; % deg (Euler321)
-    BN = Euler3212C( deg2rad(initialAttitude) );
+    attitude = [30+5*i 40+10*cos(i/4) 5*i]'; % deg (Euler321)
+    BN = Euler3212C( deg2rad(attitude) );
     NB = BN';
-    
+
     CAM = createCamera(NB);
 
     [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,true,f1ax,f2ax);
@@ -32,6 +32,87 @@ for i=1:1%0.25:1000
 end
 % pictureData: [i u v]
 % starEstData: [i xc yc zc]
+
+%% Star Identification
+load('star50NN.mat');
+
+attitude = [60 -10 0]'; % deg (Euler321)
+BN = Euler3212C( deg2rad(attitude) );
+NB = BN';
+CAM = createCamera(NB);
+
+[pictureData,starEstData,~,~] = takePicture(STARS,CAM,NB,true,[],[]);
+starsInFrame = size(starEstData,1);
+
+Jhist = zeros(STARS.Nstars,starsInFrame);
+
+% For each star in the frame:
+for star_i=1:starsInFrame
+    dxc = starEstData(:,2)-starEstData(star_i,2);
+    dyc = starEstData(:,3)-starEstData(star_i,3);
+    dzc = starEstData(:,4)-starEstData(star_i,4);
+
+    distsI = sqrt(dxc.^2 + dyc.^2 + dzc.^2)';
+    sortedDists = sort(distsI);
+    sortedDists = sortedDists(2:end);
+    
+    % For each row in the truth star dictionary: pair star_i's neighbors
+    % with entries in that row. Sum the residuals and save as a cost.
+    for row = 1:STARS.Nstars
+        
+        % Once a star has been "accepted" as a match with the truth star
+        % dictionary, it cannot be re-used. The bookmark increments and
+        % trims the remaining stars in the dictionary that can be used for
+        % a match. The threshold may need to be tuned.
+        bookmark = 0; 
+
+        for nbor=1:length(sortedDists)
+            
+            residual = 1;
+            while residual > 0.005 && bookmark < 50
+                bookmark = bookmark+1;
+                residual = abs(sortedDists(nbor)-star50NN.dict(row,bookmark));
+            end
+             
+            % If no match was found, add default residual
+            if residual > 0.005
+                residual = 1;
+            end
+
+            % Save residual in costs
+            Jhist(row,star_i) = Jhist(row,star_i)+residual;
+    
+        end
+
+    end
+
+end
+
+% Cell array which will contain probability distribution and index for each
+% LIVE hypothesis for each star
+starPriors = cell(1,starsInFrame);
+
+% Only keep LIVE hypotheses for each star ( < mean-2sigma )
+% for that star
+for i=1:starsInFrame
+
+    % Save values less than the 2sigma bound (and respective indices)
+    hyps = Jhist(:,i); %hyps = Jhist( Jhist(:,i)<(mJ-2*stdJ) ,i);
+    %inds = (1:STARS.Nstars)'; inds = inds( Jhist(:,i)<(mJ-2*stdJ) );
+
+    % Normalize using softmax function. Favors lower costs, can adjust base
+    % to achieve desired scaling
+    base = 0.6;
+    hyps = base.^hyps./sum(base.^hyps);
+
+    [sortedHyps, sortedInds] = sort(hyps,'descend');
+
+    starPriors{i} = [sortedInds sortedHyps];
+
+end
+
+
+%% Attitude Determination
 
 % Determine Attitude using Gradient Descent
 % Set intial guess using two of the stars in frame
