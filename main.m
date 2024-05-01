@@ -65,6 +65,8 @@ for star_i=1:starsInFrame
     for row = 1:STARS.Nstars
         
         magResidual = abs(mag_i-mag(row));
+        Jhist(row,star_i) = Jhist(row,star_i) + 50*magResidual;
+    
 
         % Once a star has been "accepted" as a match with the truth star
         % dictionary, it cannot be re-used. The bookmark increments and
@@ -74,20 +76,20 @@ for star_i=1:starsInFrame
 
         for nbor=1:length(sortedDists)
             
-            residual = 1;
+            residual = 0.75;
             for bkmk = remainingAvailableIndex:50
                 residual = abs(sortedDists(nbor)-star50NN.dict(row,bkmk));
                 if residual < 0.005 && magResidual < 3*CAM.sigma_mag
                     remainingAvailableIndex = bkmk+1;
                     break;
                 else
-                    residual = 1;
+                    residual = 0.75;
                 end
             end
 
 
             % Save residual in costs
-            Jhist(row,star_i) = Jhist(row,star_i)+residual;
+            Jhist(row,star_i) = Jhist(row,star_i) + residual;
     
         end
 
@@ -109,18 +111,18 @@ for i=1:starsInFrame
     hyps = Jhist(:,i);
     
     inds = (1:500)';
-    %inds = inds(hyps<(mJ*0.05));
-    hyps = hyps(inds);
+
+    [sortedHyps, sortedInds] = sort(hyps,'ascend');
+    sortedInds = inds(sortedInds);
 
     % Normalize using softmax function. Favors lower costs, can adjust base
     % to achieve desired scaling
     base = 0.5;
-    hyps = base.^hyps./sum(base.^hyps);
+    scaleFactor = 3;
+    scaledHyps = base.^(scaleFactor*sortedHyps)./sum(base.^(scaleFactor*sortedHyps));
 
-    [sortedHyps, sortedInds] = sort(hyps,'descend');
-    sortedInds = inds(sortedInds);
 
-    starPriors{i} = [sortedInds sortedHyps];
+    starPriors{i} = [sortedInds scaledHyps];
 
 end
 
