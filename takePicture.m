@@ -42,7 +42,9 @@ function [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,plotflag
     
         ihat = NB(:,1); jhat = NB(:,2); khat = NB(:,3);
     
+        % True star position and magnitude
         starPos = [STARS.x(i) STARS.y(i) STARS.z(i)]'; % Inertial star position
+        starMag = STARS.mag(i);
 
         if dot(starPos,CAM.pointVector_N) > 0 % If star is in front of camera:
             
@@ -60,9 +62,6 @@ function [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,plotflag
                 % Eq (5) in http://mesh.brown.edu/3DP-2018/calibration.html
                 r_squared = (u_i-CAM.u0)^2 + (v_i - CAM.v0)^2; 
                 distortion_factor = 1/(1 + CAM.k1 * r_squared + CAM.k2 * r_squared^2);
-       
-                %u_d = u_i * distortion_factor;
-                %v_d = v_i * distortion_factor;
                 
                 % 3D Coordinates in Body Frame
                 yc = -distortion_factor*(u_i-CAM.u0)/CAM.f;
@@ -70,9 +69,12 @@ function [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,plotflag
                 xc = sqrt(1-yc^2-zc^2); % normalize range by 1 
                 inertial = NB * [xc;yc;zc];
 
+                % Add noise to magnitude
+                starMag = starMag+CAM.sigma_mag*randn(1);
+
                 % Save measurements from image
-                pictureData = [pictureData; i, u_i, v_i];
-                starEstData = [starEstData; i, xc, yc, zc];
+                pictureData = [pictureData; i, u_i, v_i, starMag];
+                starEstData = [starEstData; i, xc, yc, zc, starMag];
                 starInertial = [starInertial; i, inertial(1), inertial(2), inertial(3)];
 
             end

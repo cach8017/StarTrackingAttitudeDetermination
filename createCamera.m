@@ -18,5 +18,6 @@ function CAM = createCamera(NB)
 
     % Measurement noise
     CAM.sigma_u = 0;      CAM.sigma_v = 0;
+    CAM.sigma_mag = 0.01;
 
 end
