@@ -1,11 +1,13 @@
-function [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,plotflag,f1ax,f2ax)
+function [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,BN,plotflag,POV,f1ax,f2ax)
 
+    %% PLOT INITIALIZATION
     if plotflag
-        % Clear skybox
+        % Create skybox if nonexistent
         if isempty(f1ax)
             figure(1); f1ax=gca; 
         end
 
+        % Clear measurements from skybox
         chil = f1ax.Children;
         for j=1:length(chil)
             if chil(j).DisplayName == "meas"
@@ -24,6 +26,7 @@ function [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,plotflag
             darkMode(f2);
         end
 
+        % Delete all measurements from image figure
         chil = f2ax.Children;
         for i=1:length(chil)
             delete(chil(i));
@@ -31,12 +34,16 @@ function [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,plotflag
 
     end
 
-    % Create container for imaged stars [index u v]
+    %% TAKE MEASUREMENTS
+    % Create container for imaged stars [index u v mag]
     pictureData = [];
-    % Create container for imaged stars [index xc yc zc]
+    % Create container for imaged stars [index xc yc zc mag]
     starEstData = [];
     % Create container for imaged stars [index xn yn zn]
     starInertial = [];
+
+    % Find NB DCM
+    NB = BN';
 
     for i=1:STARS.Nstars
     
@@ -83,21 +90,26 @@ function [pictureData,starEstData,f1ax,f2ax] = takePicture(STARS,CAM,NB,plotflag
     
     end
     
+    %% PLOT BOTH IMAGES ON AXES
     if plotflag
-        % Plot projected point on image
-        plot(f2ax,pictureData(:,2)',pictureData(:,3)','.','MarkerSize',20,'Color',[1 1 1]); hold on;
-
-        % Plot imaged star on skybox
-        plot3(f1ax,starInertial(:,2)',starInertial(:,3)',starInertial(:,4)','.','MarkerSize',20,'Color',[1 0 0],'DisplayName','meas');
-   
+        if size(pictureData,1) > 0
+            % Plot projected point on image
+            plot(f2ax,pictureData(:,2)',pictureData(:,3)','.','MarkerSize',20,'Color',[1 1 1]); hold on;
+            % Plot imaged star on skybox
+            plot3(f1ax,starInertial(:,2)',starInertial(:,3)',starInertial(:,4)','.','MarkerSize',20,'Color',[1 0 0],'DisplayName','meas');
+        end
 
         plotBoundingBox(CAM,NB,f1ax); 
 
         % Orient skybox to show imaged region 
-        f1ax.CameraTarget = CAM.pointVector_N';
-        f1ax.CameraPosition = [0 0 0];
-        f1ax.CameraViewAngle = 40;
-        f1ax.CameraUpVector = CAM.upVector_N';
+        if POV
+            f1ax.CameraTarget = CAM.pointVector_N';
+            f1ax.CameraPosition = [0 0 0];
+            f1ax.CameraViewAngle = 40;
+            f1ax.CameraUpVector = CAM.upVector_N';
+        end
+
+        drawnow;
     end
 
 end
